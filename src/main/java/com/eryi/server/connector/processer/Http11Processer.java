@@ -1,12 +1,16 @@
 package com.eryi.server.connector.processer;
 
 
+import com.eryi.server.config.ServletConfig;
+import com.eryi.server.config.ServletConfigMapping;
 import com.eryi.server.connector.Bean.Request;
 import com.eryi.server.connector.Bean.Response;
 
 import java.io.*;
+import java.lang.reflect.Method;
 import java.net.Socket;
 import java.net.URL;
+import java.util.List;
 
 /**
  * @author ZouJiaNan
@@ -17,11 +21,9 @@ import java.net.URL;
 public class Http11Processer {
 
     private Request request;
-    private Response response;
 
     public Http11Processer(){
         this.request=new Request();
-        this.response=new Response();
     }
 
     public String processHttpResponseContext(int code,String content,String message){
@@ -64,9 +66,9 @@ public class Http11Processer {
             //2.2解析URL
             this.request.setUrl(headers[1]);
 
-            //返回响应
-            String content=readFile(request.getUrl());
-            socket.getOutputStream().write(new Http11Processer().processHttpResponseContext(200,content,"success").getBytes());
+            //3.返回响应
+            Response response=createResponse(request.getUrl());
+            socket.getOutputStream().write(new Http11Processer().processHttpResponseContext(200,response.getParam(),"success").getBytes());
             socket.close();
         } catch (IOException e) {
             e.printStackTrace();
@@ -74,10 +76,33 @@ public class Http11Processer {
     }
 
     /**
-     * 读取文件
+     * 处理请求，返回响应
      */
-    private String readFile(String fileName){
+    private Response createResponse(String fileName){
+        Response response=new Response();
+        //1.欢迎页
+        if("/".equals(fileName)){
+            response.setParam(readStaticFile("/index.html"));
+        }
+        //2.静态资源请求
+        if(fileName.contains(".")){
+            response.setParam(readStaticFile(fileName));
+        }
+        //3.动态资源请求（servlet）
+        response.setParam(readDynamicFile(fileName,request,response));
+        //4.404页面
+        if(response.getParam()==null){
+            response.setParam(readStaticFile("/404.html"));
+        }
+
+        return response;
+    }
+
+    private String readStaticFile(String fileName){
         URL url = this.getClass().getResource(fileName);
+        if(url==null){
+            return null;
+        }
         String path = url.getPath();
         File file = new File(path);
         BufferedReader reader = null;
@@ -89,7 +114,6 @@ public class Http11Processer {
                 sbf.append(tempStr);
             }
             reader.close();
-            return sbf.toString();
         } catch (IOException e) {
             e.printStackTrace();
         } finally {
@@ -101,7 +125,22 @@ public class Http11Processer {
                 }
             }
         }
+
         return sbf.toString();
+    }
+
+    private String readDynamicFile(String url,Request request,Response response){
+        String param="";
+        try {
+            List<ServletConfig> configs=ServletConfigMapping.getConfigs();
+            Class clazz=Class.forName(configs.get(0).getClazz());
+            Object[] params={request,response};
+            Method method=clazz.getMethod("doGet",Request.class,Response.class);
+            param=((Response) method.invoke(clazz.newInstance(),params)).getParam();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return param;
     }
 
 }
