@@ -89,7 +89,9 @@ public class Http11Processer {
             response.setParam(readStaticFile(fileName));
         }
         //3.动态资源请求（servlet）
-        response.setParam(readDynamicFile(fileName,request,response));
+        if(response.getParam()==null){
+            response.setParam(readDynamicFile(fileName,request,response));
+        }
         //4.404页面
         if(response.getParam()==null){
             response.setParam(readStaticFile("/404.html"));
