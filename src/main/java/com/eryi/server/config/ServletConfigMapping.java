@@ -1,7 +1,9 @@
 package com.eryi.server.config;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * @author ZouJiaNan
@@ -10,15 +12,15 @@ import java.util.List;
  * @date 2022/1/18 22:52
  */
 public class ServletConfigMapping {
-    private static List<ServletConfig> configs=new ArrayList<ServletConfig>();
+    private static Map<String,ServletConfig> configs=new HashMap<String, ServletConfig>();
 
     static {
-        configs.add(
-                new ServletConfig("testServlet","/test","com.eryi.server.servlet.testServlet")
+        configs.put(
+                "/test",new ServletConfig("testServlet","/test","com.eryi.server.servlet.testServlet")
         );
     }
 
-    public static List<ServletConfig> getConfigs(){
+    public static Map<String,ServletConfig> getConfigs(){
         return configs;
     }
 }

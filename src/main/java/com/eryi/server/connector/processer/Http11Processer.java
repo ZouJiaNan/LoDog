@@ -5,12 +5,14 @@ import com.eryi.server.config.ServletConfig;
 import com.eryi.server.config.ServletConfigMapping;
 import com.eryi.server.connector.Bean.Request;
 import com.eryi.server.connector.Bean.Response;
+import com.eryi.server.servlet.Servlet;
 
 import java.io.*;
 import java.lang.reflect.Method;
 import java.net.Socket;
 import java.net.URL;
 import java.util.List;
+import java.util.Map;
 
 /**
  * @author ZouJiaNan
@@ -134,11 +136,29 @@ public class Http11Processer {
     private String readDynamicFile(String url,Request request,Response response){
         String param="";
         try {
-            List<ServletConfig> configs=ServletConfigMapping.getConfigs();
-            Class clazz=Class.forName(configs.get(0).getClazz());
+            Map<String,ServletConfig> configs=ServletConfigMapping.getConfigs();
+            //解析URL
+            String[] urlParams=url.split("/");
+            String prefix="/"+urlParams[1];
+            //根据URL前缀获取对应servlet
+            ServletConfig servletConfig=configs.get(prefix);
+            if(servletConfig==null){
+                return null;
+            }
+            Class clazz=Class.forName(servletConfig.getClazz());
             Object[] params={request,response};
-            Method method=clazz.getMethod("doGet",Request.class,Response.class);
-            param=((Response) method.invoke(clazz.newInstance(),params)).getParam();
+            //调用servlet对应方法处理请求
+            Method method=null;
+            if("GET".equals(request.getMethods())){
+                method=clazz.getMethod("doGet",Request.class,Response.class);
+            }
+            if("POST".equals(request.getMethods())){
+                method=clazz.getMethod("doPost",Request.class,Response.class);
+            }
+            if(method!=null) {
+                Object object= method.invoke(clazz.newInstance(), params);
+                param=object==null?null:((Response)object).getParam();
+            }
         } catch (Exception e) {
             e.printStackTrace();
         }

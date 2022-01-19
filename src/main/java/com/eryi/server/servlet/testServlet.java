@@ -11,11 +11,12 @@ import com.eryi.server.connector.Bean.Response;
  */
 public class testServlet implements Servlet{
     public Response doGet(Request request, Response response) {
-        response.setParam("testSuccess");
+        response.setParam("testGetSuccess");
         return response;
     }
 
     public Response doPost(Request request, Response response) {
-        return null;
+        response.setParam("testPostSuccess");
+        return response;
     }
 }
