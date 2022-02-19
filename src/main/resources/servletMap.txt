@@ -1,0 +1,5 @@
+-start
+Servlet.Name=testServlet
+Servlet.Class=com.eryi.testServlet
+Servlet.Mapping=/test
+-end
